@@ -45,80 +45,132 @@ ctf, з категоріями ctf, з можливістю підключати
 
 Має бути хеадер із посиланнями на сторінки лідербоардів, задач, правил
 
-## 2.
-### 2.1
+## API
+
+### Ресурси
+
 - challenges
 - categories
 - users
 - submissions
 - leaderboard
 - stats
-- authentification
+- authentication
 
-Challenges:
-GET `/api/v1/challenges/` - список задач, з різними фільтрами, 400 при будь якому 
-невалідному фільтру, з такими параметрами: search, category, difficulty 
-(easy/medium/hard), author, status (draft/review/active/rejected), ordering 
-(+-points, +- solves, +-created_at), page
-200 - `{"count": <кількість>, "next": <посилання/null>, "previous": <посилання/null>, "results": [{"id": <id>, "title": "<назва>", "difficulty": "<складність>", "points": <бали>, "category": {"id": <id>, "name": "<категорія>"}, "author": {"id": <id>, "nickname": "<нікнейм>"}, "solves": <кількість>}]}`
-400 - `{"detail": "<помилка>"}`
-POST `/api/v1/challenges/` - створити задачу, із статусом чернетки (draft)
-у body: `{"title": "<назва>", "description": "<опис>", "category": <id>, "difficulty": "<складність>", "points": <бали>, "flag": "<флаг>", "connection_info": "<адреса>"}`
-201 - створена задача з полями id, status, author, created_at:
-`{"id": <id>, "title": "<назва>", "description": "<опис>", "category": {"id": <id>, "name": "<категорія>"}, "difficulty": "<складність>", "points": <бали>, "connection_info": "<адреса>", "status": "draft", "author": {"id": <id>, "nickname": "<нікнейм>"}, "created_at": "<дата>"}`
-400 - `{"<поле>": ["<помилка>"]}`; 401
-GET `/api/v1/challenges/<id>/` - деталі задачі, окрім флагу
-200 - id, title, description, category, difficulty, points, connection_info, status,
-author, solves, first_blood (користувач + час), created_at:
-`{"id": <id>, "title": "<назва>", "description": "<опис>", "category": {"id": <id>, "name": "<категорія>"}, "difficulty": "<складність>", "points": <бали>, "connection_info": "<адреса>", "status": "<статус>", "author": {"id": <id>, "nickname": "<нікнейм>"}, "solves": <кількість>, "first_blood": {"user": {"id": <id>, "nickname": "<нікнейм>"}, "solved_at": "<дата>"}, "created_at": "<дата>"}`
-404 якщо не існує (або не active і ти не автор/адмін)
-PATCH `/api/v1/challenges/<id>/` - редагувати задачу або змінити статус
-у body: будь-які поля з POST, що змінюються, та/або status, напр. `{"status": "review"}`;
-переходи статусу: автор: draft на review, адмін: review на active/rejected;
-200 - оновлена задача (як у GET `/api/v1/challenges/<id>/`); 400 - невалідні поля або недозволений перехід 
-`{"status": ["<помилка>"]}`; 401; 403 - не автор і не адмін
-TBD: коментар адміна при відхиленні
-DELETE `/api/v1/challenges/<id>/` - видалити задачу, якщо ти автор цієї або адмін
-204 - видалено, без body; 401; 403 інакше
-GET `/api/v1/challenges/<id>/solves/` - хто вирішив, хто First-Blood
-200 - список з полями user (id, nickname), solved_at, first_blood (true/false):
-`[{"user": {"id": <id>, "nickname": "<нікнейм>"}, "solved_at": "<дата>", "first_blood": <true/false>}]`
-POST `/api/v1/challenges/<id>/submissions/` - відправити флаг, кожна спроба зберігається
-у body: `{"flag": "<флаг>"}`;
-201 при будь якому флагу - correct (t/f), points (якщо правильний), first_blood:
-`{"correct": true, "points": <бали>, "first_blood": <true/false>}` або `{"correct": false}`
-400 - flag відсутній або порожній `{"flag": ["<помилка>"]}`; 401; 409 - задачу вже вирішено цим користувачем `{"detail": "<помилка>"}`
-TBD: обмеження кількості спроб/429 при рейтліміту (подумати скільки і на скільки)
+### Challenges
 
+**`GET /api/v1/challenges/`** - список задач з фільтрами
+- параметри: `search`, `category`, `difficulty` (easy/medium/hard), `author`,
+  `status` (draft/review/active/rejected), `ordering` (+-points, +-solves, +-created_at)
+  , `page`
+- `200`: `{"count": <кількість>, "next": <посилання/null>, "previous": 
+<посилання/null>, "results": [{"id": <id>, "title": "<назва>", "difficulty": 
+"<складність>", "points": <бали>, "category": {"id": <id>, "name": "<категорія>"}, 
+"author": {"id": <id>, "nickname": "<нікнейм>"}, "solves": <кількість>}]}`
+- `400` - невалідний фільтр: `{"detail": "<помилка>"}`
 
-Categories:
-GET `/api/v1/categories/` - список категорій
-200 - список з полями id, name: `[{"id": <id>, "name": "<категорія>"}]`
-TBD: адмін панель для категорій
+**`POST /api/v1/challenges/`** - створити задачу з статусом чернетки
+- body: `{"title": "<назва>", "description": "<опис>", "category": <id>, 
+"difficulty": "<складність>", "points": <бали>, "flag": "<флаг>", "connection_info": 
+"<адреса>"}`
+- `201`: `{"id": <id>, "title": "<назва>", "description": "<опис>", "category": 
+{"id": <id>, "name": "<категорія>"}, "difficulty": "<складність>", "points": <бали>, 
+"connection_info": "<адреса>", "status": "draft", "author": {"id": <id>, "nickname": 
+"<нікнейм>"}, "created_at": "<дата>"}`
+- `400`: `{"<поле>": ["<помилка>"]}`
+- `401`
 
-Users:
-GET `/api/v1/users/<id>/` - профіль
-200 - id, nickname, bio, date_joined, points, solves, first_bloods:
-`{"id": <id>, "nickname": "<нікнейм>", "bio": "<опис>", "date_joined": "<дата>", "points": <бали>, "solves": <кількість>, "first_bloods": <кількість>}`
-GET `/api/v1/users/<id>/challenges/` - задачі, створені юзером
-200 - список задач у форматі як у GET /challenges/
-GET `/api/v1/users/me/` - свій профіль
-200 - як у профілі; 401
-PATCH `/api/v1/users/me/` - редагувати свій нікнейм та/або опис
-у body: `{"nickname": "<нікнейм>", "bio": "<опис>"}` (можна лише одне з полів);
-200 - оновлений профіль; 400 - нікнейм зайнятий або порожній `{"nickname": ["<помилка>"]}`; 401
+**`GET /api/v1/challenges/<id>/`** - деталі задач, без флагу
+- `200`: `{"id": <id>, "title": "<назва>", "description": "<опис>", "category": 
+{"id": <id>, "name": "<категорія>"}, "difficulty": "<складність>", "points": <бали>,
+ "connection_info": "<адреса>", "status": "<статус>", "author": {"id": <id>, 
+ "nickname": "<нікнейм>"}, "solves": <кількість>, "first_blood": {"user": {"id": 
+ <id>, "nickname": "<нікнейм>"}, "solved_at": "<дата>"}, "created_at": "<дата>"}`
+- `404` - задача не існує (або вона не active, а ти не автор і не адмін)
 
-Moderation:
-GET `/api/v1/challenges/?status=review` - черга модерації (адмін)/свої задачі на рев'ю (автор)
-200 - список задач у форматі як у GET /challenges/ (автор бачить лише свої); 401
+**`PATCH /api/v1/challenges/<id>/`** - редагувати задачу або змінити статус
+- body: будь які поля з POST, що змінюються, та/або `status`, наприклад `{"status": 
+"review"}`
+- переходи статусу: автор - з draft на review; адмін - теж саме, тільки ще + з 
+  review на active/rejected
+- `200` - оновлена задача (як у `GET /api/v1/challenges/<id>/`)
+- `400` - невалідні поля або невалідний перехід: `{"status": ["<помика>"]}`
+- `401`
+- `403` - не автор і не адмін
+- TBD: коментар адміна при відхиленні
 
-Leaderboard:
-GET `/api/v1/leaderboard/?by=points` - список лідерів, by: points / solves / first_bloods
-200 - список з полями rank, user (id, nickname), points, solves, first_bloods:
-`[{"rank": <місце>, "user": {"id": <id>, "nickname": "<нікнейм>"}, "points": <бали>, "solves": <кількість>, "first_bloods": <кількість>}]`
-400 - невідоме значення by `{"detail": "<помилка>"}`
-GET `/api/v1/stats/` - статистика для головної
-200 - users, challenges, solves (кількості): `{"users": <кількість>, "challenges": <кількість>, "solves": <кількість>}`
+**`DELETE /api/v1/challenges/<id>/`** - видалити задачу (автор або адмін)
+- `204` - видалено, без body
+- `401`
+- `403` - не автор і не адмін
 
-Auth:
-TBD: це буде пізніше на курсі вроді
+**`GET /api/v1/challenges/<id>/solves/`** - хто вирішив задачу і хто отримав First Blood
+- `200`: `[{"user": {"id": <id>, "nickname": "<нікнейм>"}, "solved_at": "<дата>", 
+"first_blood": <t/f>}]`
+
+**`POST /api/v1/challenges/<id>/submissions/`** - відправити флаг, кожна спроба 
+зберігається
+- body: `{"flag": "<флаг>"}`
+- `201` при будь-якому флагу: `{"correct": true, "points": <бали>, "first_blood": 
+<t/f>}` або `{"correct": false}`
+- `400` - флаг відсутній або порожній: `{"flag": ["<помилка>"]}`
+- `401`
+- `409` - задачу вже вирішено цим користувачем: `{"detail": "<помилка>"}`
+- TBD: обмеження кількості спроб/429 при рейтліміті (подумати скільки і на скільки)
+
+### Categories
+
+**`GET /api/v1/categories/`** - список категорій
+- `200`: `[{"id": <id>, "name": "<категорія>"}]`
+- TBD: додавати категорії через адмінку
+
+### Users
+
+**`GET /api/v1/users/<id>/`** - профіль користувача
+- `200`: `{"id": <id>, "nickname": "<нікнейм>", "bio": "<опис>", "date_joined": 
+"<дата>", "points": <бали>, "solves": <кількість>, "first_bloods": <кількість>}`
+
+**`GET /api/v1/users/<id>/challenges/`** - задачі, створені користувачем
+- `200` - список задач у форматі як у `GET /api/v1/challenges/`
+
+**`GET /api/v1/users/me/`** - свій профіль
+- `200` - як у профілі користувача
+- `401`
+
+**`PATCH /api/v1/users/me/`** - редагувати свій нікнейм та/або опис
+- body: `{"nickname": "<нікнейм>", "bio": "<опис>"}` (можна передати лише одне з полів)
+- `200` - оновлений профіль
+- `400` - нікнейм зайнятий або порожній: `{"nickname": ["<помилка>"]}`
+- `401`
+
+### Moderation
+
+**`GET /api/v1/challenges/?status=review`** - черга модерації (адмін)/свої задачі 
+на ревжю (автор)
+- `200` - список задач у форматі як у `GET /api/v1/challenges/` (автор бачить тільки 
+  свої)
+- `401`
+
+### Leaderboard
+
+**`GET /api/v1/leaderboard/?by=points`** - список лідерів, `by`:
+points/solves/first_bloods
+- `200`: `[{"rank": <місце>, "user": {"id": <id>, "nickname": "<нікнейм>"}, 
+"points": <бали>, "solves": <кількість>, "first_bloods": <кількість>}]`
+- `400` - невалідне значення: `{"detail": "<помилка>"}`
+
+### Stats
+
+**`GET /api/v1/stats/`** - стата для головної сторінки
+- `200`: `{"users": <кількість>, "challenges": <кількість>, "solves": <кількість>}`
+
+### Auth
+
+- TBD: реєстрація та вхід - вроді пізніше більш детально розкажете про це
+
+## Схема бази даних
+
+![Схема бази даних](photo/drawio.png)
+
+- First Blood - найраніший правильний Submission для задачі
+- t/f - true/false (duh)
