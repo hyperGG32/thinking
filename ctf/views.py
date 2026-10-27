@@ -35,11 +35,11 @@ class ChallengeList(APIView):
             challenges = challenges.filter(title__icontains=search)
         if category:
             if not category.isdigit():
-                raise ValidationError({"category": ["Має бути цілим числом"]})
+                raise ValidationError({"category": ["Має бути цілим числом!"]})
             challenges = challenges.filter(category_id=category)
         if author:
             if not author.isdigit():
-                raise ValidationError({"author": ["Має бути цілим числом"]})
+                raise ValidationError({"author": ["Має бути цілим числом!"]})
             challenges = challenges.filter(author_id=author)
 
         if difficulty:
@@ -93,7 +93,8 @@ class ChallengeDetail(APIView):
             if new_status not in allowed:
                 raise Conflict(f"Опа! Неможливо перейти з {challenge.status} на "
                                f"{new_status}. Дозволені: "
-                               f"{', '.join(sorted(allowed)) or "жодного"}")
+                               f"{', '.join(sorted(allowed)) 
+                                  or "жодного. Тобто, неможливо змінити статус!"}")
 
         serializer = ChallengeDetailSerializer(challenge, data=request.data,
                                                partial=True)
@@ -139,6 +140,7 @@ class CategoryDetail(APIView):
         count = category.challenges.count()
         if count:
             raise Conflict(f"Отакої! Не можемо видалити {category.name}, поки у ній є"
-                           f" завдання. Зараз їх {count}!")
+                           f" завдання. Зараз їх {count}! Спершу видаліть або "
+                           f"перенесіть, і спробуйте ще раз!")
         category.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

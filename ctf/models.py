@@ -5,7 +5,7 @@ from django.conf import settings
 class Category(models.Model):
     name = models.CharField(max_length=100, verbose_name="Назва", unique=True,
                             error_messages={"unique": "Категорія з такою назвою вже "
-                                                      "існує"})
+                                                      "існує. Спробуйте іншу назву!"})
 
     def __str__(self):
         return self.name

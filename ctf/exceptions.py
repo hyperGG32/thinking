@@ -14,12 +14,15 @@ def challenges_exception_handler(exc, context):
         return None
 
     if response.status_code == 404:
-        response.data = {"error": "Отакої! Шукали і тут і там, не змогли знайти...",
+        response.data = {"error": "Отакої! Шукали і тут і там, не змогли знайти... "
+                                  "Спробуйте пошук з іншими параметрами!",
                          "fields": None}
     elif isinstance(exc, ValidationError):
         fields = response.data if isinstance(response.data, dict) else {
             "non_field_errors": response.data}
-        response.data = {"error": "Невалідні дані", "fields": fields}
+        response.data = {"error": f"Невалідні дані, виправте поля '{fields}', "
+                                  f"і спробуйте знову!", "fields":
+            fields}
     else:
         response.data = {"error": response.data.get("detail"), "fields": None}
 
