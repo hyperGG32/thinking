@@ -29,7 +29,10 @@ SECRET_KEY = getenv("SECRET_KEY")
 DEBUG = getenv("DEBUG") == "True"
 
 ALLOWED_HOSTS = []
-
+CORS_ALLOWED_ORIGINS = [
+    "http://127.0.0.1:5500",
+    "http://localhost:5500"
+]
 
 # Application definition
 
@@ -46,6 +49,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -108,7 +112,10 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/6.1/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'uk'
+REST_FRAMEWORK = {
+    "EXCEPTION_HANDLER": "ctf.exceptions.challenges_exception_handler"
+}
 
 TIME_ZONE = 'UTC'
 
