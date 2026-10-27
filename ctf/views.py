@@ -1,4 +1,4 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import get_object_or_404
 
 from rest_framework import status
 from rest_framework.response import Response
@@ -9,8 +9,15 @@ from rest_framework.pagination import PageNumberPagination
 from .models import Challenge, Category
 from .serializers import (ChallengeDetailSerializer, ChallengeListSerializer,
                           CategorySerializer)
+from .exceptions import Conflict
 
 ORDERING = {"points", "-points", "created_at", "-created_at", "solves", "-solves"}
+TRANSITIONS = {
+    "draft": {"review"},
+    "review": {"rejected", "active"},
+    "active": set(),
+    "rejected": {"review"}
+}
 
 
 class ChallengeList(APIView):
@@ -74,10 +81,27 @@ class ChallengeDetail(APIView):
 
     def patch(self, request, pk):
         challenge = get_object_or_404(Challenge, id=pk)
+        new_status = request.data.get("status")
+
+        if new_status is not None:
+            if new_status not in Challenge.Status.values:
+                raise ValidationError({"status": [f"Дозволені: "
+                                                  f"{', '.join(Challenge.Status.values
+                                                               )}"
+                                                  ]})
+            allowed = TRANSITIONS[challenge.status]
+            if new_status not in allowed:
+                raise Conflict(f"Опа! Неможливо перейти з {challenge.status} на "
+                               f"{new_status}. Дозволені: "
+                               f"{', '.join(sorted(allowed)) or "жодного"}")
+
         serializer = ChallengeDetailSerializer(challenge, data=request.data,
                                                partial=True)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        if new_status is not None:
+            serializer.save(status=new_status)
+        else:
+            serializer.save()
         return Response(serializer.data)
 
     def delete(self, request, pk):
@@ -112,7 +136,9 @@ class CategoryDetail(APIView):
 
     def delete(self, request, pk):
         category = get_object_or_404(Category, id=pk)
+        count = category.challenges.count()
+        if count:
+            raise Conflict(f"Отакої! Не можемо видалити {category.name}, поки у ній є"
+                           f" завдання. Зараз їх {count}!")
         category.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
-
-
