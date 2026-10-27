@@ -29,25 +29,6 @@
           "response": []
         },
         {
-          "name": "getCategory",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/categories/1/",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "categories",
-                "1",
-                ""
-              ]
-            }
-          },
-          "response": []
-        },
-        {
           "name": "createCategories",
           "request": {
             "method": "POST",
@@ -80,6 +61,25 @@
           "response": []
         },
         {
+          "name": "getCategory",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/categories/1/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "categories",
+                "1",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
           "name": "createCategoriesDuplicate",
           "request": {
             "method": "POST",
@@ -91,7 +91,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"hardware\"\n}",
+              "raw": "{\n  \"name\": \"forensics\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -143,44 +143,6 @@
             }
           },
           "response": []
-        },
-        {
-          "name": "deleteCategory",
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/categories/1/",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "categories",
-                "1",
-                ""
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "deleteCategoryInvalid",
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{base_url}}/categories/999/",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "categories",
-                "999",
-                ""
-              ]
-            }
-          },
-          "response": []
         }
       ]
     },
@@ -192,6 +154,38 @@
           "request": {
             "method": "GET",
             "header": [],
+            "url": {
+              "raw": "{{base_url}}/challenges/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "challenges",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "createChallenge",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Tombduino\",\n  \"description\": \"Перед вами ардуіно, але що з нею робити - незрозуміло.\",\n  \"category\": 1,\n  \"difficulty\": \"hard\",\n  \"points\": 667,\n  \"flag\": \"CTF{Kuchm4nk0_rul1t_h4rdw4r3}\",\n  \"connection_info\": \"nc ctf.local 67\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{base_url}}/challenges/",
               "host": [
@@ -305,38 +299,6 @@
               "path": [
                 "challenges",
                 "999",
-                ""
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "createChallenge",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"title\": \"Tombduino\",\n  \"description\": \"Перед вами ардуіно, але що з нею робити - незрозуміло.\",\n  \"category\": 1,\n  \"difficulty\": \"hard\",\n  \"points\": 667,\n  \"flag\": \"CTF{Kuchm4nk0_rul1t_h4rdw4r3}\",\n  \"connection_info\": \"nc ctf.local 67\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{base_url}}/challenges/",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "challenges",
                 ""
               ]
             }
@@ -541,6 +503,25 @@
           "response": []
         },
         {
+          "name": "deleteCategoryInvalid",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/categories/1/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "categories",
+                "1",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
           "name": "deleteChallenge",
           "request": {
             "method": "DELETE",
@@ -571,6 +552,25 @@
               ],
               "path": [
                 "challenges",
+                "1",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "deleteCategory",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/categories/1/",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "categories",
                 "1",
                 ""
               ]
