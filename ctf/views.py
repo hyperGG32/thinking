@@ -1,22 +1,24 @@
 from django.shortcuts import get_object_or_404
-
 from rest_framework import status
-from rest_framework.response import Response
-from rest_framework.views import APIView
 from rest_framework.exceptions import ValidationError
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
-from .models import Challenge, Category
-from .serializers import (ChallengeDetailSerializer, ChallengeListSerializer,
-                          CategorySerializer)
 from .exceptions import Conflict
+from .models import Category, Challenge
+from .serializers import (
+    CategorySerializer,
+    ChallengeDetailSerializer,
+    ChallengeListSerializer,
+)
 
 ORDERING = {"points", "-points", "created_at", "-created_at", "solves", "-solves"}
 TRANSITIONS = {
     "draft": {"review"},
     "review": {"rejected", "active"},
     "active": set(),
-    "rejected": {"review"}
+    "rejected": {"review"},
 }
 
 
@@ -44,19 +46,26 @@ class ChallengeList(APIView):
 
         if difficulty:
             if difficulty not in Challenge.Difficulty.values:
-                raise ValidationError({"difficulty": [
-                    f"Дозволено: {', '.join(Challenge.Difficulty.values)}"]})
+                raise ValidationError(
+                    {
+                        "difficulty": [
+                            f"Дозволено: {', '.join(Challenge.Difficulty.values)}"
+                        ]
+                    }
+                )
             challenges = challenges.filter(difficulty=difficulty)
 
         if status_:
             if status_ not in Challenge.Status.values:
                 raise ValidationError(
-                    {"status": [f"Дозволено: {', '.join(Challenge.Status.values)}"]})
+                    {"status": [f"Дозволено: {', '.join(Challenge.Status.values)}"]}
+                )
             challenges = challenges.filter(status=status_)
 
         if ordering not in ORDERING:
             raise ValidationError(
-                {"ordering": [f"Дозволено: {', '.join(sorted(ORDERING))}"]})
+                {"ordering": [f"Дозволено: {', '.join(sorted(ORDERING))}"]}
+            )
         if ordering in ("solves", "-solves"):  # solves поки завжди 0
             ordering = "-created_at"
         challenges = challenges.order_by(ordering, "-id")
@@ -65,7 +74,8 @@ class ChallengeList(APIView):
         paginator.page_size = 20
         page = paginator.paginate_queryset(challenges, request, view=self)
         return paginator.get_paginated_response(
-            ChallengeListSerializer(page, many=True).data)
+            ChallengeListSerializer(page, many=True).data
+        )
 
     def post(self, request):
         serializer = ChallengeDetailSerializer(data=request.data)
@@ -85,19 +95,23 @@ class ChallengeDetail(APIView):
 
         if new_status is not None:
             if new_status not in Challenge.Status.values:
-                raise ValidationError({"status": [f"Дозволені: "
-                                                  f"{', '.join(Challenge.Status.values
-                                                               )}"
-                                                  ]})
+                raise ValidationError(
+                    {"status": [f"Дозволені: {', '.join(Challenge.Status.values)}"]}
+                )
             allowed = TRANSITIONS[challenge.status]
             if new_status not in allowed:
-                raise Conflict(f"Опа! Неможливо перейти з {challenge.status} на "
-                               f"{new_status}. Дозволені: "
-                               f"{', '.join(sorted(allowed)) 
-                                  or "жодного. Тобто, неможливо змінити статус!"}")
+                raise Conflict(
+                    f"Опа! Неможливо перейти з {challenge.status} на "
+                    f"{new_status}. Дозволені: "
+                    f"{
+                        ', '.join(sorted(allowed))
+                        or 'жодного. Тобто, неможливо змінити статус!'
+                    }"
+                )
 
-        serializer = ChallengeDetailSerializer(challenge, data=request.data,
-                                               partial=True)
+        serializer = ChallengeDetailSerializer(
+            challenge, data=request.data, partial=True
+        )
         serializer.is_valid(raise_exception=True)
         if new_status is not None:
             serializer.save(status=new_status)
@@ -130,7 +144,11 @@ class CategoryDetail(APIView):
 
     def patch(self, request, pk):
         category = get_object_or_404(Category, id=pk)
-        serializer = CategorySerializer(category, data=request.data, partial=True, )
+        serializer = CategorySerializer(
+            category,
+            data=request.data,
+            partial=True,
+        )
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
@@ -139,8 +157,10 @@ class CategoryDetail(APIView):
         category = get_object_or_404(Category, id=pk)
         count = category.challenges.count()
         if count:
-            raise Conflict(f"Отакої! Не можемо видалити {category.name}, поки у ній є"
-                           f" завдання. Зараз їх {count}! Спершу видаліть або "
-                           f"перенесіть, і спробуйте ще раз!")
+            raise Conflict(
+                f"Отакої! Не можемо видалити {category.name}, поки у ній є"
+                f" завдання. Зараз їх {count}! Спершу видаліть або "
+                f"перенесіть, і спробуйте ще раз!"
+            )
         category.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

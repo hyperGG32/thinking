@@ -1,6 +1,8 @@
-from rest_framework import serializers
-from .models import Challenge, Category
 from hashlib import sha256
+
+from rest_framework import serializers
+
+from .models import Category, Challenge
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -41,8 +43,12 @@ class ChallengeDetailSerializer(ChallengeListSerializer):
 
     class Meta(ChallengeListSerializer.Meta):
         fields = ChallengeListSerializer.Meta.fields + [
-            "description", "connection_info", "status", "flag", "first_blood",
-            "created_at"
+            "description",
+            "connection_info",
+            "status",
+            "flag",
+            "first_blood",
+            "created_at",
         ]
         read_only_fields = ["status", "created_at"]
 
@@ -51,4 +57,3 @@ class ChallengeDetailSerializer(ChallengeListSerializer):
 
     def get_first_blood(self, obj):
         return None
-    

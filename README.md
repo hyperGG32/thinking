@@ -53,7 +53,22 @@ cd thinking
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
-python -c "from django.core.management.utils import get_random_secret_key as g; open('.env', 'w').write(f'SECRET_KEY={g()}\nDEBUG=True\n')"
+```
+
+Згенеруйте ключ:
+
+```
+python -c "import secrets; print(secrets.token_urlsafe(50))"
+```
+
+Створіть файл `.env` у корені проєкту і вставте в нього ключ:
+
+```
+SECRET_KEY={ВАШ_КЛЮЧ}
+DEBUG=True
+```
+
+```
 python manage.py migrate
 python manage.py runserver 8001
 ```
@@ -123,6 +138,7 @@ python manage.py runserver 8001
   }
   ```
 - `400` - невалідний фільтр, у `fields` назва параметра
+- поки немає Submission, `solves` завжди `0`, а `ordering=±solves` сортує як `-created_at`
 
 **`POST /api/v1/challenges/`** - створити задачу з статусом чернетки
 - body:
@@ -174,6 +190,7 @@ python manage.py runserver 8001
   ```
 - `404` - задача не існує (або вона не active, а ти не автор і не адмін; поки немає
   авторизації, кожен запит вважається запитом адміна, тому видно задачі в усіх статусах)
+- TBD: поки немає Submission, `solves` завжди `0`, а `first_blood` завжди `null`
 
 **`PATCH /api/v1/challenges/<id>/`** - редагувати задачу або змінити статус
 - body: будь які поля з POST, що змінюються, та/або `status`, наприклад `{"status": "review"}`
@@ -193,6 +210,7 @@ python manage.py runserver 8001
 - `403` - не автор і не адмін
 
 **`GET /api/v1/challenges/<id>/solves/`** - хто вирішив задачу і хто отримав First Blood
+- TBD: ще не реалізовано, з'явиться разом із Submission після авторизації
 - `200`:
   ```json
   [
@@ -209,6 +227,7 @@ python manage.py runserver 8001
 
 **`POST /api/v1/challenges/<id>/submissions/`** - відправити флаг, кожна спроба
 зберігається
+- TBD: ще не реалізовано, з'явиться після авторизації
 - body: `{"flag": "<флаг>"}`
 - `201` при будь-якому флагу:
   ```json
@@ -266,6 +285,8 @@ python manage.py runserver 8001
 
 ### Users
 
+TBD: ендпоінти користувачів ще не реалізовані, з'являться після авторизації.
+
 **`GET /api/v1/users/<id>/`** - профіль користувача
 - `200`:
   ```json
@@ -307,11 +328,13 @@ python manage.py runserver 8001
 - `200` - список задач у форматі як у `GET /api/v1/challenges/` (автор бачить тільки
   свої)
 - `401`
+- поки немає авторизації, це звичайний фільтр за статусом і показує задачі всіх авторів
 
 ### Leaderboard
 
 **`GET /api/v1/leaderboard/?by=points`** - список лідерів, `by`:
 points/solves/first_bloods
+- TBD: ще не реалізовано, з'явиться після авторизації
 - `200`:
   ```json
   [
@@ -332,6 +355,7 @@ points/solves/first_bloods
 ### Stats
 
 **`GET /api/v1/stats/`** - стата для головної сторінки
+- TBD: ще не реалізовано, з'явиться після авторизації
 - `200`:
   ```json
   {
@@ -351,3 +375,7 @@ points/solves/first_bloods
 
 - First Blood - найраніший правильний Submission для задачі
 - t/f - true/false (duh)
+
+## Фронтенд
+
+[тута](https://github.com/hyperGG32/thinkingFront)
