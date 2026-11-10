@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
 from os import getenv
+from datetime import timedelta
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -44,6 +45,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "corsheaders",
     "ctf",
+    "accounts",
 ]
 
 MIDDLEWARE = [
@@ -111,7 +113,17 @@ AUTH_PASSWORD_VALIDATORS = [
 # https://docs.djangoproject.com/en/6.1/topics/i18n/
 
 LANGUAGE_CODE = "uk"
-REST_FRAMEWORK = {"EXCEPTION_HANDLER": "ctf.exceptions.challenges_exception_handler"}
+REST_FRAMEWORK = {
+    "EXCEPTION_HANDLER": "ctf.exceptions.challenges_exception_handler",
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ],
+}
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+}
 
 TIME_ZONE = "UTC"
 
