@@ -1,10 +1,14 @@
 from django.shortcuts import get_object_or_404
+from django.db.models import Q
+
 from rest_framework import status
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import ValidationError, PermissionDenied, NotFound
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
 
+from accounts.permissions import IsAdminOrReadOnly, IsAuthorOrReadOnly
 from .exceptions import Conflict
 from .models import Category, Challenge
 from .serializers import (
@@ -23,6 +27,8 @@ TRANSITIONS = {
 
 
 class ChallengeList(APIView):
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
     def get(self, request):
         challenges = Challenge.objects.all()
         params = request.query_params
@@ -32,6 +38,13 @@ class ChallengeList(APIView):
         difficulty = params.get("difficulty")
         status_ = params.get("status")
         ordering = params.get("ordering", "-created_at")
+
+        if not request.user.is_staff:
+            if request.user.is_authenticated:
+                challenges = challenges.filter(Q(status="active") | Q(
+                    author=request.user))
+            else:
+                challenges = challenges.filter(status="active")
 
         if search:
             challenges = challenges.filter(title__icontains=search)
@@ -80,17 +93,25 @@ class ChallengeList(APIView):
     def post(self, request):
         serializer = ChallengeDetailSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
+        serializer.save(author=request.user)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class ChallengeDetail(APIView):
+    permission_classes = [IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly]
+
     def get(self, request, pk):
         challenge = get_object_or_404(Challenge, id=pk)
+        if challenge.status != "active" and not request.user.is_staff and request.user \
+            != challenge.author:
+            raise NotFound()
         return Response(ChallengeDetailSerializer(challenge).data)
 
     def patch(self, request, pk):
         challenge = get_object_or_404(Challenge, id=pk)
+
+        self.check_object_permissions(request, challenge)
+
         new_status = request.data.get("status")
 
         if new_status is not None:
@@ -99,6 +120,9 @@ class ChallengeDetail(APIView):
                     {"status": [f"Дозволені: {', '.join(Challenge.Status.values)}"]}
                 )
             allowed = TRANSITIONS[challenge.status]
+            if new_status in {"active", "rejected"} and not request.user.is_staff:
+                raise PermissionDenied("Публікувати чи відхиляти задачі може тільки "
+                                       "адміністратор. Надішліть задачу на рев'ю")
             if new_status not in allowed:
                 raise Conflict(
                     f"Опа! Неможливо перейти з {challenge.status} на "
@@ -121,11 +145,14 @@ class ChallengeDetail(APIView):
 
     def delete(self, request, pk):
         challenge = get_object_or_404(Challenge, id=pk)
+        self.check_object_permissions(request, challenge)
         challenge.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class CategoryList(APIView):
+    permission_classes = [IsAdminOrReadOnly]
+
     def get(self, request):
         category = Category.objects.all()
         return Response(CategorySerializer(category, many=True).data)
@@ -138,6 +165,8 @@ class CategoryList(APIView):
 
 
 class CategoryDetail(APIView):
+    permission_classes = [IsAdminOrReadOnly]
+
     def get(self, request, pk):
         category = get_object_or_404(Category, id=pk)
         return Response(CategorySerializer(category).data)
