@@ -1,6 +1,7 @@
 from rest_framework import status
 from rest_framework.exceptions import APIException, ValidationError
 from rest_framework.views import exception_handler
+from rest_framework_simplejwt.exceptions import InvalidToken
 
 
 class Conflict(APIException):
@@ -30,6 +31,11 @@ def challenges_exception_handler(exc, context):
             f"{', '.join(fields)}', "
             f"і спробуйте знову!",
             "fields": fields,
+        }
+    elif isinstance(exc, InvalidToken):
+        response.data = {
+            "error": "Токен неправильний, спробуйте його оновити",
+            "fields": None,
         }
     else:
         response.data = {"error": response.data.get("detail"), "fields": None}
