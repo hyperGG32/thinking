@@ -1,14 +1,14 @@
-from django.shortcuts import get_object_or_404
 from django.db.models import Q
-
+from django.shortcuts import get_object_or_404
 from rest_framework import status
-from rest_framework.exceptions import ValidationError, PermissionDenied, NotFound
+from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
 
 from accounts.permissions import IsAdminOrReadOnly, IsAuthorOrReadOnly
+
 from .exceptions import Conflict
 from .models import Category, Challenge
 from .serializers import (
@@ -41,8 +41,9 @@ class ChallengeList(APIView):
 
         if not request.user.is_staff:
             if request.user.is_authenticated:
-                challenges = challenges.filter(Q(status="active") | Q(
-                    author=request.user))
+                challenges = challenges.filter(
+                    Q(status="active") | Q(author=request.user)
+                )
             else:
                 challenges = challenges.filter(status="active")
 
@@ -102,8 +103,11 @@ class ChallengeDetail(APIView):
 
     def get(self, request, pk):
         challenge = get_object_or_404(Challenge, id=pk)
-        if challenge.status != "active" and not request.user.is_staff and request.user \
-            != challenge.author:
+        if (
+            challenge.status != "active"
+            and not request.user.is_staff
+            and request.user != challenge.author
+        ):
             raise NotFound()
         return Response(ChallengeDetailSerializer(challenge).data)
 
@@ -121,8 +125,10 @@ class ChallengeDetail(APIView):
                 )
             allowed = TRANSITIONS[challenge.status]
             if new_status in {"active", "rejected"} and not request.user.is_staff:
-                raise PermissionDenied("Публікувати чи відхиляти задачі може тільки "
-                                       "адміністратор. Надішліть задачу на рев'ю")
+                raise PermissionDenied(
+                    "Публікувати чи відхиляти задачі може тільки "
+                    "адміністратор. Надішліть задачу на рев'ю"
+                )
             if new_status not in allowed:
                 raise Conflict(
                     f"Опа! Неможливо перейти з {challenge.status} на "
