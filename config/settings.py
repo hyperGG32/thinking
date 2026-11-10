@@ -113,7 +113,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/6.1/topics/i18n/
 
-LANGUAGE_CODE = "uk"
+LANGUAGE_CODE = "uk-ua"
 REST_FRAMEWORK = {
     "EXCEPTION_HANDLER": "ctf.exceptions.challenges_exception_handler",
     "DEFAULT_AUTHENTICATION_CLASSES": [

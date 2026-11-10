@@ -2,6 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth.models import User
 from django.contrib.auth import password_validation
 from django.core.exceptions import ValidationError as DjangoValidationError
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -45,4 +46,18 @@ class RegisterSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data.pop("password_conf")
         return User.objects.create_user(**validated_data)
+
+
+class UserSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = User
+        fields = ["id", "username", "first_name", "last_name", "email", "is_staff"]
+
+
+class UserTokenSerializer(TokenObtainPairSerializer):
+    default_error_messages = {
+        "no_active_account": "Невірний юзернейм або пароль. Перевірте їх та повторіть "
+                             "спробу"
+    }
 
