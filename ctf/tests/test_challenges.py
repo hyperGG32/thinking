@@ -157,3 +157,42 @@ def test_update_not_found(roles):
     response = roles["admin"].patch(url, {"points": 228}, format="json")
 
     assert response.status_code == 404
+
+
+@pytest.mark.parametrize(
+    "role, expected",
+    [("anon", 401), ("other_user", 403), ("user", 204), ("admin", 204)],
+)
+@pytest.mark.django_db
+def test_delete_permissions(role, expected, roles, challenge):
+    url = reverse("ctf:ind_challenge", kwargs={"pk": challenge.id})
+
+    response = roles[role].delete(url)
+
+    assert response.status_code == expected
+    assert Challenge.objects.filter(id=challenge.id).exists() == (expected != 204)
+
+
+@pytest.mark.django_db
+def test_delete_not_found(roles):
+    url = reverse("ctf:ind_challenge", kwargs={"pk":6767})
+
+    response = roles["admin"].delete(url)
+
+    assert response.status_code == 404
+
+
+@pytest.mark.django_db
+def test_login_token_works(api_client, user, challenge_body):
+    tokens = api_client.post(
+        reverse("accounts:token_obtain_pair"),
+        {"username": user.username, "password": "N0th4xx4bl3_1337$"},
+        format="json"
+    ).data
+
+    api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {tokens['access']}")
+
+    response = api_client.post(reverse("ctf:challenges"), challenge_body, format="json")
+
+    assert response.status_code == 201
+    assert response.data["author"]["id"] == user.id
