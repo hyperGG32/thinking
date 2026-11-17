@@ -33,7 +33,7 @@ class ChallengeListSerializer(serializers.ModelSerializer):
         model = Challenge
         fields = ["id", "title", "difficulty", "points", "category", "author", "solves"]
 
-    def get_solves(self, obj):
+    def get_solves(self, obj) -> int:
         return 0
 
 
@@ -55,5 +55,5 @@ class ChallengeDetailSerializer(ChallengeListSerializer):
     def validate_flag(self, flag):
         return sha256(flag.encode()).hexdigest()
 
-    def get_first_blood(self, obj):
+    def get_first_blood(self, obj) -> dict | None:
         return None
