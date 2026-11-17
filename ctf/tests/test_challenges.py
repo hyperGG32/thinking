@@ -109,3 +109,51 @@ def test_create_invalid_data(roles, category):
     assert ({"difficulty", "points", "description", "flag"} <=
             set(response.data["fields"]))
     assert not Challenge.objects.exists()
+
+
+@pytest.mark.parametrize(
+    "role, expected",
+    [("anon", 401), ("other_user", 403), ("user", 200), ("admin", 200)],
+)
+@pytest.mark.django_db
+def test_update_permissions(role, expected, roles, challenge):
+    url = reverse("ctf:ind_challenge", kwargs={"pk": challenge.id})
+
+    response = roles[role].patch(url, {"points": 676}, format="json")
+
+    assert response.status_code == expected
+    challenge.refresh_from_db()
+    assert challenge.points == (676 if expected == 200 else 67)
+
+
+@pytest.mark.parametrize(
+    "role, start, target, expected",
+    [
+        ("user", "draft", "review", 200),
+        ("user", "review", "active", 403),
+        ("admin", "review", "active", 200),
+        ("admin", "review", "rejected", 200),
+        ("admin", "active", "draft", 409),
+        ("user", "draft", "abc", 400),
+    ],
+)
+@pytest.mark.django_db
+def test_update_status_transmission(role, start, target, expected, roles, challenge):
+    challenge.status = start
+    challenge.save()
+
+    url = reverse("ctf:ind_challenge", kwargs={"pk": challenge.id})
+    response = roles[role].patch(url, {"status": target}, format="json")
+
+    assert response.status_code == expected
+    challenge.refresh_from_db()
+    assert challenge.status == (target if response.status_code == 200 else start)
+
+
+@pytest.mark.django_db
+def test_update_not_found(roles):
+    url = reverse("ctf:ind_challenge", kwargs={"pk": 6767})
+
+    response = roles["admin"].patch(url, {"points": 228}, format="json")
+
+    assert response.status_code == 404
