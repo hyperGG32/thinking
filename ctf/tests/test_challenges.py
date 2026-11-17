@@ -196,3 +196,14 @@ def test_login_token_works(api_client, user, challenge_body):
 
     assert response.status_code == 201
     assert response.data["author"]["id"] == user.id
+
+
+@pytest.mark.django_db
+def test_create_logs_without_secrets(roles, challenge_body, caplog):
+    caplog.set_level("INFO", logger="ctf")
+
+    response = roles["user"].post(reverse("ctf:challenges"), challenge_body, format="json")
+
+    assert response.status_code == 201
+    assert f"Challenge {response.data['id']} created" in caplog.text
+    assert NEW_FLAG not in caplog.text

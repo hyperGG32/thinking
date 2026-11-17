@@ -1,3 +1,5 @@
+import logging
+
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 
@@ -28,6 +30,8 @@ TRANSITIONS = {
     "active": set(),
     "rejected": {"review"},
 }
+
+logger = logging.getLogger(__name__)
 
 
 class ChallengeList(APIView):
@@ -100,6 +104,9 @@ class ChallengeList(APIView):
             ordering = "-created_at"
         challenges = challenges.order_by(ordering, "-id")
 
+        logger.debug("Challenge list requested by user %s with params %s",
+                     request.user.id, dict(params))
+
         paginator = PageNumberPagination()
         paginator.page_size = 20
         page = paginator.paginate_queryset(challenges, request, view=self)
@@ -136,7 +143,8 @@ class ChallengeList(APIView):
     def post(self, request):
         serializer = ChallengeDetailSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save(author=request.user)
+        challenge = serializer.save(author=request.user)
+        logger.info("Challenge %s created by user %s", challenge.id, request.user.id)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
@@ -181,6 +189,7 @@ class ChallengeDetail(APIView):
 
         self.check_object_permissions(request, challenge)
 
+        old_status = challenge.status
         new_status = request.data.get("status")
 
         if new_status is not None:
@@ -190,6 +199,10 @@ class ChallengeDetail(APIView):
                 )
             allowed = TRANSITIONS[challenge.status]
             if new_status in {"active", "rejected"} and not request.user.is_staff:
+                logger.warning(
+                    "User %s tried to set status %s on challenge %s without admin "
+                    "rights",
+                    request.user.id, new_status, challenge.id)
                 raise PermissionDenied(
                     "Публікувати чи відхиляти задачі може тільки "
                     "адміністратор. Надішліть задачу на рев'ю"
@@ -208,8 +221,10 @@ class ChallengeDetail(APIView):
             challenge, data=request.data, partial=True
         )
         serializer.is_valid(raise_exception=True)
-        if new_status is not None:
+        if new_status is not None and new_status != old_status:
             serializer.save(status=new_status)
+            logger.info("Challenge %s status %s -> %s by user %s", challenge.id,
+                        old_status, new_status, request.user.id)
         else:
             serializer.save()
         return Response(serializer.data)
@@ -227,12 +242,14 @@ class ChallengeDetail(APIView):
     def delete(self, request, pk):
         challenge = get_object_or_404(Challenge, id=pk)
         self.check_object_permissions(request, challenge)
+        logger.info("Challenge %s deleted by user %s", challenge.id, request.user.id)
         challenge.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class CategoryList(APIView):
     permission_classes = [IsAdminOrReadOnly]
+    serializer_class = CategorySerializer
 
     def get(self, request):
         category = Category.objects.all()
@@ -247,6 +264,7 @@ class CategoryList(APIView):
 
 class CategoryDetail(APIView):
     permission_classes = [IsAdminOrReadOnly]
+    serializer_class = CategorySerializer
 
     def get(self, request, pk):
         category = get_object_or_404(Category, id=pk)

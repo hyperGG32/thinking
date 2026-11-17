@@ -135,6 +135,23 @@ SIMPLE_JWT = {
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
 }
 
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "simple": {"format": "{asctime} {levelname} {name}: {message}", "style": "{"},
+    },
+    "handlers": {
+        "console": {"class": "logging.StreamHandler", "formatter": "simple"},
+    },
+    "loggers": {
+        "ctf": {"handlers": ["console"], "level": getenv("LOG_LEVEL", "INFO"),
+                "propagate": False},
+        "accounts": {"handlers": ["console"], "level": getenv("LOG_LEVEL", "INFO"), 
+                     "propagate": False},
+    },
+}
+
 TIME_ZONE = "UTC"
 
 USE_I18N = True
