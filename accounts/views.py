@@ -9,6 +9,7 @@ from .serializers import RegisterSerializer, UserSerializer
 
 logger = logging.getLogger(__name__)
 
+
 class RegisterView(APIView):
     permission_classes = [AllowAny]
 

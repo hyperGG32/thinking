@@ -28,10 +28,17 @@ CHALLENGE_FILTERS = [
     OpenApiParameter("category", int, description="id категорії"),
     OpenApiParameter("author", int, description="id автора"),
     OpenApiParameter("difficulty", str, enum=Challenge.Difficulty.values),
-    OpenApiParameter("status", str, enum=Challenge.Status.values,
-                     description="Фільтрує лише в межах задач, які видно користувачу"),
-    OpenApiParameter("ordering", str, default="-created_at",
-                     enum=["points", "-points", "created_at", "-created_at",
-                           "solves", "-solves"]),
-    OpenApiParameter("page", int, description="Номер сторінки, по 20 задач")
+    OpenApiParameter(
+        "status",
+        str,
+        enum=Challenge.Status.values,
+        description="Фільтрує лише в межах задач, які видно користувачу",
+    ),
+    OpenApiParameter(
+        "ordering",
+        str,
+        default="-created_at",
+        enum=["points", "-points", "created_at", "-created_at", "solves", "-solves"],
+    ),
+    OpenApiParameter("page", int, description="Номер сторінки, по 20 задач"),
 ]

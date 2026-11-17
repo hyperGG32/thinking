@@ -2,7 +2,7 @@ import logging
 
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
-
+from drf_spectacular.utils import OpenApiExample, extend_schema
 from rest_framework import status
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.pagination import PageNumberPagination
@@ -12,16 +12,14 @@ from rest_framework.views import APIView
 
 from accounts.permissions import IsAdminOrReadOnly, IsAuthorOrReadOnly
 
-from drf_spectacular.utils import OpenApiExample, extend_schema
-
 from .exceptions import Conflict
 from .models import Category, Challenge
+from .openapi import CHALLENGE_FILTERS, PaginatedChallengeListSerializer, error
 from .serializers import (
     CategorySerializer,
     ChallengeDetailSerializer,
     ChallengeListSerializer,
 )
-from .openapi import CHALLENGE_FILTERS, PaginatedChallengeListSerializer, error
 
 ORDERING = {"points", "-points", "created_at", "-created_at", "solves", "-solves"}
 TRANSITIONS = {
@@ -46,7 +44,7 @@ class ChallengeList(APIView):
         responses={
             200: PaginatedChallengeListSerializer,
             400: error("Невалідний фільтр"),
-            404: error("Сторінки не існує")
+            404: error("Сторінки не існує"),
         },
     )
     def get(self, request):
@@ -104,8 +102,11 @@ class ChallengeList(APIView):
             ordering = "-created_at"
         challenges = challenges.order_by(ordering, "-id")
 
-        logger.debug("Challenge list requested by user %s with params %s",
-                     request.user.id, dict(params))
+        logger.debug(
+            "Challenge list requested by user %s with params %s",
+            request.user.id,
+            dict(params),
+        )
 
         paginator = PageNumberPagination()
         paginator.page_size = 20
@@ -181,8 +182,11 @@ class ChallengeDetail(APIView):
             404: error("Задача не існує"),
             409: error("Недозволений перехід статусу"),
         },
-        examples=[OpenApiExample("На модерацію", request_only=True,
-                                 value={"status": "review"})],
+        examples=[
+            OpenApiExample(
+                "На модерацію", request_only=True, value={"status": "review"}
+            )
+        ],
     )
     def patch(self, request, pk):
         challenge = get_object_or_404(Challenge, id=pk)
@@ -202,7 +206,10 @@ class ChallengeDetail(APIView):
                 logger.warning(
                     "User %s tried to set status %s on challenge %s without admin "
                     "rights",
-                    request.user.id, new_status, challenge.id)
+                    request.user.id,
+                    new_status,
+                    challenge.id,
+                )
                 raise PermissionDenied(
                     "Публікувати чи відхиляти задачі може тільки "
                     "адміністратор. Надішліть задачу на рев'ю"
@@ -223,8 +230,13 @@ class ChallengeDetail(APIView):
         serializer.is_valid(raise_exception=True)
         if new_status is not None and new_status != old_status:
             serializer.save(status=new_status)
-            logger.info("Challenge %s status %s -> %s by user %s", challenge.id,
-                        old_status, new_status, request.user.id)
+            logger.info(
+                "Challenge %s status %s -> %s by user %s",
+                challenge.id,
+                old_status,
+                new_status,
+                request.user.id,
+            )
         else:
             serializer.save()
         return Response(serializer.data)

@@ -75,6 +75,7 @@ class UserTokenSerializer(TokenObtainPairSerializer):
         try:
             return super().validate(attrs)
         except AuthenticationFailed:
-            logger.warning("Failed login attempt for username %s",
-                           attrs.get("username"))
+            logger.warning(
+                "Failed login attempt for username %s", attrs.get("username")
+            )
             raise

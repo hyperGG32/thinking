@@ -37,8 +37,9 @@ SECRET_KEY = getenv("SECRET_KEY")
 DEBUG = getenv("DEBUG") == "True"
 
 ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", "127.0.0.1,localhost")
-CORS_ALLOWED_ORIGINS = env_list("CORS_ALLOWED_ORIGINS",
-                                "http://127.0.0.1:5500,http://localhost:5500")
+CORS_ALLOWED_ORIGINS = env_list(
+    "CORS_ALLOWED_ORIGINS", "http://127.0.0.1:5500,http://localhost:5500"
+)
 
 # Application definition
 
@@ -127,13 +128,13 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ],
-    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema"
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "GenericCTF API",
     "DESCRIPTION": "API для CTF змагань, включає в собі створення, видалення, "
-                   "оновлення задач, для різних ролей.",
+    "оновлення задач, для різних ролей.",
     "VERSION": "1.0.0",
 }
 
@@ -152,10 +153,16 @@ LOGGING = {
         "console": {"class": "logging.StreamHandler", "formatter": "simple"},
     },
     "loggers": {
-        "ctf": {"handlers": ["console"], "level": getenv("LOG_LEVEL", "INFO"),
-                "propagate": False},
-        "accounts": {"handlers": ["console"], "level": getenv("LOG_LEVEL", "INFO"), 
-                     "propagate": False},
+        "ctf": {
+            "handlers": ["console"],
+            "level": getenv("LOG_LEVEL", "INFO"),
+            "propagate": False,
+        },
+        "accounts": {
+            "handlers": ["console"],
+            "level": getenv("LOG_LEVEL", "INFO"),
+            "propagate": False,
+        },
     },
 }
 
