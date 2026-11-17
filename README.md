@@ -61,12 +61,19 @@ pip install -r requirements.txt
 python -c "import secrets; print(secrets.token_urlsafe(50))"
 ```
 
-Створіть файл `.env` у корені проєкту і вставте в нього ключ:
+Скопіюйте `.env.example` у `.env` і вставте свій ключ у `SECRET_KEY`:
 
 ```
-SECRET_KEY={ВАШ_КЛЮЧ}
-DEBUG=True
+copy .env.example .env
 ```
+
+Змінні `.env`:
+- `SECRET_KEY` - секретний ключ Django, обов'язковий
+- `DEBUG` - `True` для розробки, `False` для продакшну
+- `ALLOWED_HOSTS` - хости бекенду через кому, за замовчуванням `127.0.0.1,localhost`
+- `CORS_ALLOWED_ORIGINS` - адреси фронтенду через кому, за замовчуванням
+  `http://127.0.0.1:5500,http://localhost:5500`
+- `LOG_LEVEL` - рівень логування: `DEBUG`, `INFO`, `WARNING`, `ERROR`; за замовчуванням `INFO`
 
 ```
 python manage.py migrate
@@ -75,6 +82,35 @@ python manage.py runserver 8001
 ```
 
 `createsuperuser` - адмін, потрібен для категорій і модерації.
+
+## Тести
+
+pytest + pytest-django, покрито ресурс `challenges` (`ctf/tests/`).
+
+```
+pytest
+```
+
+З покриттям:
+
+```
+pytest --cov
+```
+
+Покриття не враховує міграції та сам код тестів, налаштування у ```.coveragerc```
+
+## Документація API
+
+Swagger UI: http://127.0.0.1:8001/api/docs/ (сервер має бути запущений)
+
+- OpenAPI-схема: http://127.0.0.1:8001/api/schema/ або у файл:
+  ```
+  python manage.py spectacular --file schema.yml
+  ```
+- задокументовано ресурс `challenges`: параметри, тіла запитів і відповідей, статуси, приклади
+- авторизація в Swagger: `POST /api/v1/auth/token/`, скопіювати `access` та 
+  вставити у Authorize (справа зверху)
+
 
 ## API
 
