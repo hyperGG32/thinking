@@ -17,6 +17,12 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv()
+
+
+def env_list(name, default=""):
+    return [item.strip() for item in getenv(name, default).split(",") if item.strip()]
+
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -30,8 +36,9 @@ SECRET_KEY = getenv("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = getenv("DEBUG") == "True"
 
-ALLOWED_HOSTS = []
-CORS_ALLOWED_ORIGINS = ["http://127.0.0.1:5500", "http://localhost:5500"]
+ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", "127.0.0.1,localhost")
+CORS_ALLOWED_ORIGINS = env_list("CORS_ALLOWED_ORIGINS",
+                                "http://127.0.0.1:5500,http://localhost:5500")
 
 # Application definition
 
