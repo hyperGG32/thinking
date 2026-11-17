@@ -68,3 +68,19 @@ def challenge(user, category):
     )
 
 
+@pytest.fixture
+def roles(api_client, auth_client, user, other_user, admin):
+    return {
+        "anon": api_client,
+        "user": auth_client(user),
+        "other_user": auth_client(other_user),
+        "admin": auth_client(admin)
+    }
+
+
+@pytest.fixture
+def active_challenge(other_user, category):
+    return Challenge.objects.create(category=category, author=other_user, points=67,
+                                    status="active", title="test", description="test",
+                                    difficulty="easy",
+                                    flag=sha256(b"CTF{bactive}").hexdigest())
