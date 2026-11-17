@@ -1,5 +1,8 @@
+import logging
+
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
+from drf_spectacular.utils import OpenApiExample, extend_schema
 from rest_framework import status
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.pagination import PageNumberPagination
@@ -11,6 +14,7 @@ from accounts.permissions import IsAdminOrReadOnly, IsAuthorOrReadOnly
 
 from .exceptions import Conflict
 from .models import Category, Challenge
+from .openapi import CHALLENGE_FILTERS, PaginatedChallengeListSerializer, error
 from .serializers import (
     CategorySerializer,
     ChallengeDetailSerializer,
@@ -25,10 +29,24 @@ TRANSITIONS = {
     "rejected": {"review"},
 }
 
+logger = logging.getLogger(__name__)
+
 
 class ChallengeList(APIView):
     permission_classes = [IsAuthenticatedOrReadOnly]
 
+    @extend_schema(
+        tags=["challenges"],
+        summary="Список задач",
+        operation_id="challenges_list",
+        description="Анонім бачить active; користувач - active і свої; адмін - усі.",
+        parameters=CHALLENGE_FILTERS,
+        responses={
+            200: PaginatedChallengeListSerializer,
+            400: error("Невалідний фільтр"),
+            404: error("Сторінки не існує"),
+        },
+    )
     def get(self, request):
         challenges = Challenge.objects.all()
         params = request.query_params
@@ -84,6 +102,12 @@ class ChallengeList(APIView):
             ordering = "-created_at"
         challenges = challenges.order_by(ordering, "-id")
 
+        logger.debug(
+            "Challenge list requested by user %s with params %s",
+            request.user.id,
+            dict(params),
+        )
+
         paginator = PageNumberPagination()
         paginator.page_size = 20
         page = paginator.paginate_queryset(challenges, request, view=self)
@@ -91,16 +115,51 @@ class ChallengeList(APIView):
             ChallengeListSerializer(page, many=True).data
         )
 
+    @extend_schema(
+        tags=["challenges"],
+        summary="Створити задачу",
+        description="Задача завжди створюється як draft; автор - поточний користувач.",
+        request=ChallengeDetailSerializer,
+        responses={
+            201: ChallengeDetailSerializer,
+            400: error("Невалідні поля"),
+            401: error("Без токена"),
+        },
+        examples=[
+            OpenApiExample(
+                "Нова задача",
+                request_only=True,
+                value={
+                    "title": "Baby RSA",
+                    "description": "Розклади n на множники",
+                    "category": 1,
+                    "difficulty": "easy",
+                    "points": 100,
+                    "flag": "CTF{small_primes}",
+                    "connection_info": "nc ctf.local 1337",
+                },
+            )
+        ],
+    )
     def post(self, request):
         serializer = ChallengeDetailSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        serializer.save(author=request.user)
+        challenge = serializer.save(author=request.user)
+        logger.info("Challenge %s created by user %s", challenge.id, request.user.id)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class ChallengeDetail(APIView):
     permission_classes = [IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly]
 
+    @extend_schema(
+        tags=["challenges"],
+        summary="Одна задача",
+        responses={
+            200: ChallengeDetailSerializer,
+            404: error("Не існує або не active, а ви не автор і не адмін"),
+        },
+    )
     def get(self, request, pk):
         challenge = get_object_or_404(Challenge, id=pk)
         if (
@@ -111,11 +170,30 @@ class ChallengeDetail(APIView):
             raise NotFound()
         return Response(ChallengeDetailSerializer(challenge).data)
 
+    @extend_schema(
+        tags=["challenges"],
+        summary="Редагувати задачу або змінити статус",
+        request=ChallengeDetailSerializer,
+        responses={
+            200: ChallengeDetailSerializer,
+            400: error("Невалідні поля або неіснуючий статус"),
+            401: error("Без токена"),
+            403: error("Не автор і не адмін; або не адмін ставить active/rejected"),
+            404: error("Задача не існує"),
+            409: error("Недозволений перехід статусу"),
+        },
+        examples=[
+            OpenApiExample(
+                "На модерацію", request_only=True, value={"status": "review"}
+            )
+        ],
+    )
     def patch(self, request, pk):
         challenge = get_object_or_404(Challenge, id=pk)
 
         self.check_object_permissions(request, challenge)
 
+        old_status = challenge.status
         new_status = request.data.get("status")
 
         if new_status is not None:
@@ -125,6 +203,13 @@ class ChallengeDetail(APIView):
                 )
             allowed = TRANSITIONS[challenge.status]
             if new_status in {"active", "rejected"} and not request.user.is_staff:
+                logger.warning(
+                    "User %s tried to set status %s on challenge %s without admin "
+                    "rights",
+                    request.user.id,
+                    new_status,
+                    challenge.id,
+                )
                 raise PermissionDenied(
                     "Публікувати чи відхиляти задачі може тільки "
                     "адміністратор. Надішліть задачу на рев'ю"
@@ -143,21 +228,40 @@ class ChallengeDetail(APIView):
             challenge, data=request.data, partial=True
         )
         serializer.is_valid(raise_exception=True)
-        if new_status is not None:
+        if new_status is not None and new_status != old_status:
             serializer.save(status=new_status)
+            logger.info(
+                "Challenge %s status %s -> %s by user %s",
+                challenge.id,
+                old_status,
+                new_status,
+                request.user.id,
+            )
         else:
             serializer.save()
         return Response(serializer.data)
 
+    @extend_schema(
+        tags=["challenges"],
+        summary="Видалити задачу",
+        responses={
+            204: None,
+            401: error("Без токена"),
+            403: error("Не автор і не адмін"),
+            404: error("Задача не існує"),
+        },
+    )
     def delete(self, request, pk):
         challenge = get_object_or_404(Challenge, id=pk)
         self.check_object_permissions(request, challenge)
+        logger.info("Challenge %s deleted by user %s", challenge.id, request.user.id)
         challenge.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class CategoryList(APIView):
     permission_classes = [IsAdminOrReadOnly]
+    serializer_class = CategorySerializer
 
     def get(self, request):
         category = Category.objects.all()
@@ -172,6 +276,7 @@ class CategoryList(APIView):
 
 class CategoryDetail(APIView):
     permission_classes = [IsAdminOrReadOnly]
+    serializer_class = CategorySerializer
 
     def get(self, request, pk):
         category = get_object_or_404(Category, id=pk)

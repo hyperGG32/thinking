@@ -1,0 +1,14 @@
+[run]
+source =
+    ctf
+    accounts
+    config
+omit =
+    */migrations/*
+    */tests/*
+    config/asgi.py
+    config/wsgi.py
+
+[report]
+show_missing = True
+skip_empty = True
