@@ -1,7 +1,11 @@
 import pytest
 
+from hashlib import sha256
+
 from django.urls import reverse
 
+from ctf.models import Challenge
+from .conftest import NEW_FLAG
 
 @pytest.mark.parametrize(
     "role, sees_draft",
@@ -64,3 +68,44 @@ def test_detail_not_found(api_client):
     assert response.status_code == 404
 
 
+@pytest.mark.django_db
+def test_create_requires_auth(api_client, challenge_body):
+    response = api_client.post(reverse("ctf:challenges"), challenge_body, format="json")
+
+    assert response.status_code == 401
+    assert not Challenge.objects.exists()
+
+
+@pytest.mark.django_db
+def test_create_with_invalid_token(api_client, challenge_body):
+    api_client.credentials(HTTP_AUTHORIZATION="Bearer Sometextthatisntvalidlol")
+
+    response = api_client.post(reverse("ctf:challenges"), challenge_body, format="json")
+
+    assert response.status_code == 401
+
+
+@pytest.mark.django_db
+def test_create_challenge(roles, user, challenge_body):
+    response = roles["user"].post(reverse("ctf:challenges"), challenge_body,
+                                  format="json")
+
+    assert response.status_code == 201
+    assert response.data["author"]["id"] == user.id
+    assert response.data["status"] == "draft"
+    assert "flag" not in response.data
+
+    saved = Challenge.objects.get(pk=response.data["id"])
+    assert saved.flag == sha256(NEW_FLAG.encode()).hexdigest()
+
+
+@pytest.mark.django_db
+def test_create_invalid_data(roles, category):
+    body = {"title": "x", "category": category.id, "difficulty": "zzz", "points": -1}
+
+    response = roles["user"].post(reverse("ctf:challenges"), body, format="json")
+
+    assert response.status_code == 400
+    assert ({"difficulty", "points", "description", "flag"} <=
+            set(response.data["fields"]))
+    assert not Challenge.objects.exists()

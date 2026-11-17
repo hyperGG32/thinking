@@ -10,6 +10,7 @@ from ctf.models import Challenge, Category
 
 
 FLAG = "CTF{t3stLM40_n0t_s33n_0PS3C}"
+NEW_FLAG = "CTF{n3w_ch4ll3ng3}"
 
 
 @pytest.fixture
@@ -84,3 +85,16 @@ def active_challenge(other_user, category):
                                     status="active", title="test", description="test",
                                     difficulty="easy",
                                     flag=sha256(b"CTF{bactive}").hexdigest())
+
+
+@pytest.fixture
+def challenge_body(category):
+    return {
+        "title": "Test Challenge",
+        "description": "test descccc",
+        "category": category.id,
+        "difficulty": "easy",
+        "points": 67,
+        "flag": NEW_FLAG,
+        "status": "active",
+    }
